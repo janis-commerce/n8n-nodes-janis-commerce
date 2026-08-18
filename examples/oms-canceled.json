@@ -1,0 +1,46 @@
+{
+  "name": "OMS · Canceled",
+  "nodes": [
+    {
+      "id": "6a1e4b52-9a72-4c8b-88f0-8f5bd5f3a201",
+      "name": "When Executed by Router",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "6a1e4b52-9a72-4c8b-88f0-8f5bd5f3a202",
+      "name": "Mark Processed",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [300, 0],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "_processedBy", "value": "OMS · Canceled", "type": "string" },
+            { "id": "a2", "name": "_processedAt", "value": "={{ $now.toISO() }}", "type": "string" }
+          ]
+        },
+        "options": {
+          "includeOtherFields": true
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Router": {
+      "main": [
+        [
+          { "node": "Mark Processed", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

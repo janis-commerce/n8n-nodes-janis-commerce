@@ -1,0 +1,46 @@
+{
+  "name": "Catalog · Product Saved",
+  "nodes": [
+    {
+      "id": "8c3a6d74-bc94-4e0d-a1f2-a07df7f5c401",
+      "name": "When Executed by Router",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "8c3a6d74-bc94-4e0d-a1f2-a07df7f5c402",
+      "name": "Mark Processed",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [300, 0],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "_processedBy", "value": "Catalog · Product Saved", "type": "string" },
+            { "id": "a2", "name": "_processedAt", "value": "={{ $now.toISO() }}", "type": "string" }
+          ]
+        },
+        "options": {
+          "includeOtherFields": true
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Router": {
+      "main": [
+        [
+          { "node": "Mark Processed", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

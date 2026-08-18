@@ -1,0 +1,206 @@
+{
+  "name": "Janis Commerce — Webhook Router (All-in-One)",
+  "nodes": [
+    {
+      "id": "a0000000-0000-0000-0000-000000000001",
+      "name": "Sticky · Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-620, -280],
+      "parameters": {
+        "content": "## Janis Commerce — Webhook Router\n\nSingle-workflow router that receives **every** event from Janis Commerce (OMS, Catalog, Pricing, WMS) on one URL, fetches the **full resource** from the origin service, and routes it to the right branch via a Switch node.\n\n### Setup (2 minutes)\n1. Install the community node `@janiscommerce/n8n-nodes-janis-commerce` (Settings → Community Nodes).\n2. In the trigger node, connect a **Janis Commerce API** credential.\n3. Activate the workflow → copy the webhook URL n8n shows.\n4. In Janis (OMS / Catalog / Pricing / WMS), create **one** `order-hook` (or the equivalent for each MS) pointing at that URL with every event enabled.\n\n### How to extend\nEach branch of the Switch is one event. The three sample branches (`canceled`, `readyForPicking`, `productSaved`) are wired to a **Set** placeholder — replace it with your business logic (send email, call HTTP API, write to DB, etc.).\n\nTo add a new event: duplicate the Switch rule, change `eventName`, wire the new output to a new branch.\n\n### Available events\n**OMS (Order)**: cancelationRejected, cancelationRequested, canceled, complete, delivered, deliveryRescheduled, inDelivery, invoiced, needsRepacking, needsRescheduling, notDelivered, partiallyPicked, picking, readyForDelivery, readyForInvoice, readyForPicking, refundRejected, refunded, requestRefund, requiresIntervention, rescheduled\n**Catalog**: productSaved, skuSaved\n**Pricing**: skuPriceUpdated\n**WMS**: skuStockUpdated\n\n### Router-mode output shape\nWhen Output = Full Resource, the trigger emits the full resource fetched from Janis, with a `_event` metadata block:\n```\n{ ...fullResource, _event: { eventName, entity, service, eventDate } }\n```\nRoute with `{{ $json._event.eventName }}` in the Switch.",
+        "height": 620,
+        "width": 560,
+        "color": 6
+      }
+    },
+    {
+      "id": "a0000000-0000-0000-0000-000000000002",
+      "name": "Janis Webhook (Any Event)",
+      "type": "@janiscommerce/n8n-nodes-janis-commerce.janisCommerceTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {
+        "resource": "any",
+        "outputMode": "fullResource",
+        "authentication": "none",
+        "responseMode": "onReceived"
+      },
+      "notes": "Receives every event Janis sends (order status changes, product saved, SKU saved, price updates, stock updates). Full Resource mode fetches the resource from the origin service before emitting."
+    },
+    {
+      "id": "a0000000-0000-0000-0000-000000000003",
+      "name": "Route by Event Name",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [340, 0],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._event.eventName }}",
+                    "rightValue": "canceled",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "canceled"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._event.eventName }}",
+                    "rightValue": "readyForPicking",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "readyForPicking"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._event.eventName }}",
+                    "rightValue": "productSaved",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "productSaved"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "unmatched"
+        }
+      },
+      "notes": "Duplicate a rule to handle a new event. Route with $json._event.eventName."
+    },
+    {
+      "id": "a0000000-0000-0000-0000-000000000004",
+      "name": "Handle · Canceled",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [700, -240],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "_handledBy", "value": "canceled", "type": "string" },
+            { "id": "a2", "name": "_handledAt", "value": "={{ $now.toISO() }}", "type": "string" }
+          ]
+        },
+        "options": {
+          "includeOtherFields": true
+        }
+      },
+      "notes": "Replace this with your business logic for canceled orders — e.g. notify the customer, release stock reservation, log to CRM."
+    },
+    {
+      "id": "a0000000-0000-0000-0000-000000000005",
+      "name": "Handle · Ready For Picking",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [700, -40],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "_handledBy", "value": "readyForPicking", "type": "string" },
+            { "id": "a2", "name": "_handledAt", "value": "={{ $now.toISO() }}", "type": "string" }
+          ]
+        },
+        "options": {
+          "includeOtherFields": true
+        }
+      },
+      "notes": "Replace this with your business logic for orders ready to pick — e.g. push to picking app, notify warehouse."
+    },
+    {
+      "id": "a0000000-0000-0000-0000-000000000006",
+      "name": "Handle · Product Saved",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [700, 160],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "_handledBy", "value": "productSaved", "type": "string" },
+            { "id": "a2", "name": "_handledAt", "value": "={{ $now.toISO() }}", "type": "string" }
+          ]
+        },
+        "options": {
+          "includeOtherFields": true
+        }
+      },
+      "notes": "Replace this with your business logic for product saves — e.g. sync to Algolia, invalidate CDN cache, push to Shopify."
+    },
+    {
+      "id": "a0000000-0000-0000-0000-000000000007",
+      "name": "Unmatched Event",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [700, 360],
+      "parameters": {},
+      "notes": "Catch-all for events not routed above. Add a rule to Route by Event Name to handle it explicitly, or leave here to silently ignore."
+    },
+    {
+      "id": "a0000000-0000-0000-0000-000000000008",
+      "name": "Sticky · Add Your Logic",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [640, -400],
+      "parameters": {
+        "content": "### Replace the Set placeholders with your logic\n\nEach branch receives the **full resource** in `$json` — for order events it's the order object (id, commerceId, items, totals, status, previousStatus, etc.), for product events it's the product object, etc.\n\nAppend your own nodes (HTTP Request, Slack, Postgres, whatever) after each `Handle · …` node.",
+        "height": 240,
+        "width": 480,
+        "color": 4
+      }
+    }
+  ],
+  "connections": {
+    "Janis Webhook (Any Event)": {
+      "main": [
+        [
+          { "node": "Route by Event Name", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Route by Event Name": {
+      "main": [
+        [
+          { "node": "Handle · Canceled", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Handle · Ready For Picking", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Handle · Product Saved", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Unmatched Event", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

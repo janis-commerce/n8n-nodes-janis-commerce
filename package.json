@@ -1,0 +1,71 @@
+{
+	"name": "@janiscommerce/n8n-nodes-janis-commerce",
+	"version": "0.1.0",
+	"description": "n8n community node for Janis Commerce: trigger for Janis webhooks and actions to consume the Janis Commerce API (orders, products, SKUs, prices, stock).",
+	"license": "MIT",
+	"homepage": "https://github.com/janis-commerce/n8n-nodes-janis-commerce#readme",
+	"keywords": [
+		"n8n-community-node-package",
+		"n8n",
+		"janis",
+		"janis-commerce",
+		"oms",
+		"catalog",
+		"pricing",
+		"wms",
+		"ecommerce"
+	],
+	"author": {
+		"name": "Janis Commerce",
+		"email": "oss@janis.in",
+		"url": "https://janis.in"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/janis-commerce/n8n-nodes-janis-commerce.git"
+	},
+	"bugs": {
+		"url": "https://github.com/janis-commerce/n8n-nodes-janis-commerce/issues"
+	},
+	"engines": {
+		"node": ">=20.15"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"scripts": {
+		"build": "n8n-node build",
+		"build:watch": "tsc --watch",
+		"dev": "n8n-node dev",
+		"lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix",
+		"release": "n8n-node release",
+		"prepublishOnly": "n8n-node prerelease"
+	},
+	"files": [
+		"dist"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"strict": true,
+		"credentials": [
+			"dist/credentials/JanisCommerceApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/JanisCommerce/JanisCommerce.node.js",
+			"dist/nodes/JanisCommerce/JanisCommerceTrigger.node.js"
+		]
+	},
+	"devDependencies": {
+		"@n8n/node-cli": "^0.43.4",
+		"eslint": "9.39.4",
+		"n8n-workflow": "^2.16.0",
+		"prettier": "3.8.3",
+		"release-it": "20.2.0",
+		"typescript": "5.9.3"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	}
+}

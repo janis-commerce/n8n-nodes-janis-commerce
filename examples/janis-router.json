@@ -1,0 +1,186 @@
+{
+  "name": "Janis Router",
+  "nodes": [
+    {
+      "id": "9d4b7e85-cd05-4f1e-b203-b18e0806d501",
+      "name": "Janis Webhook (Any Event)",
+      "type": "@janiscommerce/n8n-nodes-janis-commerce.janisCommerceTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {
+        "resource": "any",
+        "outputMode": "fullResource",
+        "authentication": "none",
+        "responseMode": "onReceived"
+      },
+      "credentials": {
+        "janisCommerceApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Janis Commerce API"
+        }
+      }
+    },
+    {
+      "id": "9d4b7e85-cd05-4f1e-b203-b18e0806d502",
+      "name": "Route by eventName",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [340, 0],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._event.eventName }}",
+                    "rightValue": "canceled",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "canceled"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._event.eventName }}",
+                    "rightValue": "readyForPicking",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "readyForPicking"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._event.eventName }}",
+                    "rightValue": "productSaved",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "productSaved"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "unmatched"
+        }
+      }
+    },
+    {
+      "id": "9d4b7e85-cd05-4f1e-b203-b18e0806d503",
+      "name": "Run OMS Canceled",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [700, -200],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_ID_OF_OMS_CANCELED",
+          "mode": "id"
+        },
+        "mode": "once",
+        "options": {}
+      }
+    },
+    {
+      "id": "9d4b7e85-cd05-4f1e-b203-b18e0806d504",
+      "name": "Run OMS Ready For Picking",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [700, 0],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_ID_OF_OMS_READY_FOR_PICKING",
+          "mode": "id"
+        },
+        "mode": "once",
+        "options": {}
+      }
+    },
+    {
+      "id": "9d4b7e85-cd05-4f1e-b203-b18e0806d505",
+      "name": "Run Catalog Product Saved",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [700, 200],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_ID_OF_CATALOG_PRODUCT_SAVED",
+          "mode": "id"
+        },
+        "mode": "once",
+        "options": {}
+      }
+    },
+    {
+      "id": "9d4b7e85-cd05-4f1e-b203-b18e0806d506",
+      "name": "Unmatched Event",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [700, 400],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Janis Webhook (Any Event)": {
+      "main": [
+        [
+          { "node": "Route by eventName", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Route by eventName": {
+      "main": [
+        [
+          { "node": "Run OMS Canceled", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Run OMS Ready For Picking", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Run Catalog Product Saved", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Unmatched Event", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

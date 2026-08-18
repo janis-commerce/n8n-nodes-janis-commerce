@@ -1,0 +1,18 @@
+{
+	"node": "n8n-nodes-base.janisCommerce",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Sales", "Marketing", "IT Ops"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/janis-commerce/n8n-nodes-janis-commerce?tab=readme-ov-file#credential"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/janis-commerce/n8n-nodes-janis-commerce?tab=readme-ov-file#nodes"
+			}
+		]
+	}
+}
