@@ -6,16 +6,17 @@ import {
 } from 'n8n-workflow';
 
 /**
- * Credenciales para consumir la API de Janis Commerce (usadas por las Actions).
- * Janis autentica con api-key + api-secret + client-code en headers.
+ * Credentials used by the Janis Commerce action node to consume the Janis
+ * Commerce REST API. Janis authenticates with api-key + api-secret +
+ * client-code headers.
  *
- * El `environment` (prod/qa/beta) se resuelve acá y define el dominio base.
- * Cada nodo/operation define internamente el `service` (subdominio) y el path,
- * de forma que una única credential sirve para todos los servicios de Janis
- * dentro del mismo environment.
+ * The `environment` (prod/qa/beta) is resolved here and determines the base
+ * domain. Each node/operation declares its own `service` (subdomain) and
+ * path, so a single credential works for every service inside the same
+ * environment.
  *
- * NOTA: el Trigger node usa credenciales AWS (no estas), porque escucha el
- * topic SNS del OMS directamente (cross-account).
+ * The trigger node also uses this credential when Output = "Full Resource"
+ * to fetch the resource from the origin service after a webhook arrives.
  */
 export class JanisCommerceApi implements ICredentialType {
 	name = 'janisCommerceApi';
@@ -27,6 +28,17 @@ export class JanisCommerceApi implements ICredentialType {
 	icon = 'file:../nodes/JanisCommerce/janisCommerce.svg' as const;
 
 	properties: INodeProperties[] = [
+		{
+			displayName:
+				'For security, set <b>Allowed HTTP Request Domains</b> (below) to ' +
+				'<b>Specific Domains</b> and paste: <code>*.janis.in, *.*.janis.in, ' +
+				'*.janisqa.in, *.*.janisqa.in, *.janisdev.in, *.*.janisdev.in</code>. ' +
+				'This prevents the API key/secret from being used against non-Janis ' +
+				'URLs from the built-in HTTP Request node.',
+			name: 'securityNotice',
+			type: 'notice',
+			default: '',
+		},
 		{
 			displayName: 'API Key',
 			name: 'apiKey',
@@ -49,7 +61,7 @@ export class JanisCommerceApi implements ICredentialType {
 			type: 'string',
 			default: '',
 			required: true,
-			description: 'Código de cliente de Janis (header janis-client)',
+			description: 'Janis client (tenant) code — sent as the `janis-client` header',
 		},
 		{
 			displayName: 'Environment',
@@ -62,11 +74,12 @@ export class JanisCommerceApi implements ICredentialType {
 			],
 			default: 'prod',
 			required: true,
-			description: 'Environment de Janis. Define el dominio base (janis.in / janisqa.in / janisdev.in).',
+			description:
+				'Janis environment. Determines the base domain (janis.in / janisqa.in / janisdev.in).',
 		},
 	];
 
-	// Inyecta los headers de autenticación de Janis en cada request.
+	// Inject Janis auth headers on every request.
 	authenticate: IAuthenticateGeneric = {
 		type: 'generic',
 		properties: {
@@ -78,10 +91,11 @@ export class JanisCommerceApi implements ICredentialType {
 		},
 	};
 
-	// Test de credenciales: lista de órdenes del OMS del environment seleccionado.
+	// Credential test: hits the OMS list endpoint on the selected environment.
 	test: ICredentialTestRequest = {
 		request: {
-			baseURL: '={{"https://oms." + ({prod: "janis.in", qa: "janisqa.in", beta: "janisdev.in"})[$credentials.environment]}}',
+			baseURL:
+				'={{"https://oms." + ({prod: "janis.in", qa: "janisqa.in", beta: "janisdev.in"})[$credentials.environment]}}',
 			url: '/api/order',
 			method: 'GET',
 		},

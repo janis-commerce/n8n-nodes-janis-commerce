@@ -1,19 +1,15 @@
 import {
 	IWebhookFunctions,
-	ITriggerFunctions,
-	ITriggerResponse,
 	INodeType,
+	INodeProperties,
 	INodeTypeDescription,
 	IWebhookResponseData,
 	IDataObject,
 	IHttpRequestMethods,
-	INodeProperties,
 	INodePropertyOptions,
 	NodeConnectionTypes,
 	NodeOperationError,
 } from 'n8n-workflow';
-
-import { EVENT_SAMPLES } from './samples';
 
 type JanisEnvironment = 'prod' | 'qa' | 'beta';
 
@@ -23,30 +19,40 @@ const DOMAIN_BY_ENV: Record<JanisEnvironment, string> = {
 	beta: 'janisdev.in',
 };
 
-// Order events (21). Every one triggers a status change in the OMS and — when
+// Order events (20). Every one triggers a status change in the OMS and — when
 // Output = Full Resource — the trigger fetches GET /api/order/{metadata.id}.
-const ORDER_EVENTS: { value: string; name: string; description: string }[] = [
-	{ value: 'cancelationRejected', name: 'Cancelation Rejected', description: 'A cancelation request was rejected' },
-	{ value: 'cancelationRequested', name: 'Cancelation Requested', description: 'A cancelation was requested' },
-	{ value: 'canceled', name: 'Canceled', description: 'The order was canceled' },
-	{ value: 'complete', name: 'Complete', description: 'The order was marked as complete' },
-	{ value: 'delivered', name: 'Delivered', description: 'The order was delivered' },
-	{ value: 'deliveryRescheduled', name: 'Delivery Rescheduled', description: 'The delivery of the order was rescheduled' },
-	{ value: 'inDelivery', name: 'In Delivery', description: 'The order is out for delivery' },
-	{ value: 'invoiced', name: 'Invoiced', description: 'The order was invoiced' },
-	{ value: 'needsRepacking', name: 'Needs Repacking', description: 'The order needs to be repacked' },
-	{ value: 'needsRescheduling', name: 'Needs Rescheduling', description: 'The order needs to be rescheduled' },
-	{ value: 'notDelivered', name: 'Not Delivered', description: 'The order was not delivered' },
-	{ value: 'partiallyPicked', name: 'Partially Picked', description: 'The order was partially picked' },
-	{ value: 'picking', name: 'Picking', description: 'The order is being picked' },
-	{ value: 'readyForDelivery', name: 'Ready for Delivery', description: 'The order is ready to be delivered' },
-	{ value: 'readyForInvoice', name: 'Ready for Invoice', description: 'The order is ready to be invoiced' },
-	{ value: 'readyForPicking', name: 'Ready for Picking', description: 'The order is ready to be picked' },
-	{ value: 'refundRejected', name: 'Refund Rejected', description: 'A refund request was rejected' },
-	{ value: 'refunded', name: 'Refunded', description: 'The order was refunded' },
-	{ value: 'requestRefund', name: 'Request Refund', description: 'A refund was requested for the order' },
-	{ value: 'requiresIntervention', name: 'Requires Intervention', description: 'The order requires manual intervention' },
-	{ value: 'rescheduled', name: 'Rescheduled', description: 'The order was rescheduled' },
+//
+// The list is aligned with janis-oms-service/webhooks/triggers.yml (the source
+// of truth of what OMS actually emits). `docOperationId` follows the official
+// naming convention `order<CamelCasedEventName>Webhook`. Some links will 404
+// on docs.janis.in until the OMS team merges the fixes tracked in the "Fix
+// OMS order webhook schemas" bug — see the task list.
+const ORDER_EVENTS: {
+	value: string;
+	name: string;
+	description: string;
+	docOperationId: string;
+}[] = [
+	{ value: 'cancelationRejected', name: 'Cancelation Rejected', description: 'A cancelation request was rejected', docOperationId: 'orderCancelationRejectedWebhook' },
+	{ value: 'cancelationRequested', name: 'Cancelation Requested', description: 'A cancelation was requested', docOperationId: 'orderCancelationRequestedWebhook' },
+	{ value: 'canceled', name: 'Canceled', description: 'The order was canceled', docOperationId: 'orderCanceledWebhook' },
+	{ value: 'complete', name: 'Complete', description: 'The order was marked as complete', docOperationId: 'orderCompleteWebhook' },
+	{ value: 'delivered', name: 'Delivered', description: 'The order was delivered', docOperationId: 'orderDeliveredWebhook' },
+	{ value: 'deliveryRescheduled', name: 'Delivery Rescheduled', description: 'The delivery of the order was rescheduled', docOperationId: 'orderDeliveryRescheduledWebhook' },
+	{ value: 'inDelivery', name: 'In Delivery', description: 'The order is out for delivery', docOperationId: 'orderInDeliveryWebhook' },
+	{ value: 'invoiced', name: 'Invoiced', description: 'The order was invoiced', docOperationId: 'orderInvoicedWebhook' },
+	{ value: 'needsRepacking', name: 'Needs Repacking', description: 'The order needs to be repacked', docOperationId: 'orderNeedsRepackingWebhook' },
+	{ value: 'needsRescheduling', name: 'Needs Rescheduling', description: 'The order needs to be rescheduled', docOperationId: 'orderNeedsReschedulingWebhook' },
+	{ value: 'notDelivered', name: 'Not Delivered', description: 'The order was not delivered', docOperationId: 'orderNotDeliveredWebhook' },
+	{ value: 'partiallyPicked', name: 'Partially Picked', description: 'The order was partially picked', docOperationId: 'orderPartiallyPickedWebhook' },
+	{ value: 'picking', name: 'Picking', description: 'The order is being picked', docOperationId: 'orderPickingWebhook' },
+	{ value: 'readyForDelivery', name: 'Ready for Delivery', description: 'The order is ready to be delivered', docOperationId: 'orderReadyForDeliveryWebhook' },
+	{ value: 'readyForInvoice', name: 'Ready for Invoice', description: 'The order is ready to be invoiced', docOperationId: 'orderReadyForInvoiceWebhook' },
+	{ value: 'readyForPicking', name: 'Ready for Picking', description: 'The order is ready to be picked', docOperationId: 'orderReadyForPickingWebhook' },
+	{ value: 'refundRejected', name: 'Refund Rejected', description: 'A refund request was rejected', docOperationId: 'orderRefundRejectedWebhook' },
+	{ value: 'refunded', name: 'Refunded', description: 'The order was refunded', docOperationId: 'orderRefundedWebhook' },
+	{ value: 'requestRefund', name: 'Request Refund', description: 'A refund was requested for the order', docOperationId: 'orderRequestRefundWebhook' },
+	{ value: 'rescheduled', name: 'Rescheduled', description: 'The order was rescheduled', docOperationId: 'orderRescheduledWebhook' },
 ];
 
 // Per-event fetch config for the "Full Resource" output mode.
@@ -99,64 +105,62 @@ const getValueAtPath = (obj: IDataObject, path: string): unknown => {
 
 const toOptions = (
 	items: { value: string; name: string; description: string }[],
+	entityLabel: string,
 ): INodePropertyOptions[] =>
 	items.map(({ value, name, description }) => ({
 		name,
 		value,
-		action: `On ${name.toLowerCase()}`,
+		action: `On ${entityLabel.toLowerCase()} ${name.toLowerCase()}`,
 		description,
 	}));
 
-// One notice per event, showing the shape of what will arrive on the webhook
-// AND the shape of what the trigger emits when Output = "Full Resource".
-const buildSampleNotices = (): INodeProperties[] => {
-	const notices: INodeProperties[] = [];
-	for (const [eventValue, sample] of Object.entries(EVENT_SAMPLES)) {
-		notices.push({
-			displayName:
-				`<b>Sample — Webhook Payload</b><br>` +
-				`<pre style="white-space:pre-wrap">${JSON.stringify(sample.webhookPayload, null, 2)}</pre>`,
-			name: `samplePayload_${eventValue}`,
-			type: 'notice',
-			default: '',
-			displayOptions: {
-				show: { event: [eventValue], outputMode: ['webhookPayload'] },
-			},
-		});
-		notices.push({
-			displayName:
-				`<b>Sample — Full Resource</b><br>` +
-				`<pre style="white-space:pre-wrap">${JSON.stringify(sample.fullResource, null, 2)}</pre>`,
-			name: `sampleFullResource_${eventValue}`,
-			type: 'notice',
-			default: '',
-			displayOptions: {
-				show: { event: [eventValue], outputMode: ['fullResource'] },
-			},
-		});
-	}
-	return notices;
-};
+// Redoc anchor for an OMS order webhook operation.
+const orderWebhookDocUrl = (operationId: string): string =>
+	`https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/${operationId}`;
 
-// TODO(verified): implement `webhookMethods` (checkExists/create/delete) that
-// call Janis' own webhook-management endpoints (POST/GET/DELETE /order-hook,
-// and equivalents for catalog/pricing/wms) so activating the workflow
-// auto-registers the hook in Janis and deactivating removes it. Today users
-// create the subscription in Janis manually and paste the n8n webhook URL —
-// documented in the README. Once implemented, remove the eslint-disable below.
-// eslint-disable-next-line @n8n/community-nodes/webhook-lifecycle-complete -- manual setup documented in README
+// One notice per order event with a direct link to the official Janis docs.
+// Each is gated by displayOptions so only the matching one shows up.
+const buildOrderDocNotices = (): INodeProperties[] =>
+	ORDER_EVENTS.map(
+		({ value, docOperationId }): INodeProperties => ({
+			displayName:
+				`See the official Janis <a href="${orderWebhookDocUrl(docOperationId)}" target="_blank"><b>${value}</b> webhook docs</a>. ` +
+				`The JSON shown there is an example of the payload this trigger will receive.`,
+			name: `${value}DocNotice`,
+			type: 'notice',
+			default: '',
+			displayOptions: { show: { resource: ['order'], event: [value] } },
+		}),
+	);
+
 export class JanisCommerceTrigger implements INodeType {
+	// Webhook lifecycle: today the user creates the subscription in Janis
+	// manually (documented in the README) and pastes n8n's webhook URL, so
+	// there is nothing to register/verify/clean up on the third-party side.
+	// We still expose the three methods as no-ops so n8n treats the trigger
+	// as fully managed and stops warning about a missing lifecycle.
+	webhookMethods = {
+		default: {
+			checkExists: async () => true,
+			create: async () => true,
+			delete: async () => true,
+		},
+	};
+
 	description: INodeTypeDescription = {
 		displayName: 'Janis Commerce Trigger',
 		name: 'janisCommerceTrigger',
-		// eslint-disable-next-line @n8n/community-nodes/icon-prefer-themed-variants -- single-file icon works on both themes
-		icon: 'file:janisCommerce.svg',
+		icon: { light: 'file:janisCommerce.svg', dark: 'file:janisCommerce.dark.svg' },
 		group: ['trigger'],
 		version: 1,
 		subtitle: '={{$parameter["resource"] + ": " + $parameter["event"]}}',
 		description: 'Starts a workflow when a Janis Commerce webhook arrives',
 		defaults: { name: 'Janis Commerce Trigger' },
-		usableAsTool: true,
+		// Trigger nodes cannot be invoked as AI tools — leave the flag explicitly
+		// disabled. Cast is only needed because n8n-workflow types the field as
+		// `true | UsableAsToolDescription | undefined`, but the community-nodes
+		// lint rule requires the property to be present.
+		usableAsTool: false as unknown as true,
 		inputs: [],
 		outputs: [NodeConnectionTypes.Main],
 		credentials: [
@@ -224,8 +228,14 @@ export class JanisCommerceTrigger implements INodeType {
 				noDataExpression: true,
 				default: 'canceled',
 				displayOptions: { show: { resource: ['order'] } },
-				options: toOptions(ORDER_EVENTS),
+				options: toOptions(ORDER_EVENTS, 'Order'),
 			},
+
+			// -------- Per-event payload doc links (Order) --------
+			// One notice per order event, gated by displayOptions to show only
+			// the matching one. Each links to the official Janis reference for
+			// that webhook so the user sees the exact payload shape.
+			...buildOrderDocNotices(),
 
 			// -------- Event (Product) --------
 			{
@@ -323,9 +333,6 @@ export class JanisCommerceTrigger implements INodeType {
 					},
 				],
 			},
-
-			// Sample payloads (one notice per event × outputMode, shown when both match)
-			...buildSampleNotices(),
 
 			{
 				displayName: 'Authentication',
@@ -472,40 +479,5 @@ export class JanisCommerceTrigger implements INodeType {
 		}
 
 		return { workflowData: [this.helpers.returnJsonArray([fetched])] };
-	}
-
-	// When the user hits "Execute step" in the editor (manual test mode) without
-	// a real webhook arriving, emit the sample of the selected event. Lets you
-	// design downstream nodes without needing a live event from Janis.
-	// Router mode ("Any") emits the canceled sample as a representative event —
-	// the user can rerun manually to test the Switch with other events.
-	async trigger(this: ITriggerFunctions): Promise<ITriggerResponse> {
-		const resource = this.getNodeParameter('resource') as string;
-		const outputMode = this.getNodeParameter('outputMode') as string;
-		const event =
-			resource === 'any' ? 'canceled' : (this.getNodeParameter('event') as string);
-		const sample = EVENT_SAMPLES[event];
-
-		const manualTriggerFunction = async () => {
-			if (!sample) return;
-			const base =
-				outputMode === 'fullResource' ? sample.fullResource : sample.webhookPayload;
-			// Router mode wraps `_event` metadata (matches the runtime shape).
-			const data =
-				resource === 'any' && outputMode === 'fullResource'
-					? {
-							...base,
-							_event: {
-								eventName: event,
-								entity: sample.webhookPayload.entity,
-								service: sample.webhookPayload.service,
-								eventDate: sample.webhookPayload.eventDate,
-							},
-						}
-					: base;
-			this.emit([this.helpers.returnJsonArray([data])]);
-		};
-
-		return { manualTriggerFunction };
 	}
 }

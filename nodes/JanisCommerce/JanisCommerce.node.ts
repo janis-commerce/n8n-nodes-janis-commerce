@@ -69,8 +69,7 @@ export class JanisCommerce implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Janis Commerce',
 		name: 'janisCommerce',
-		// eslint-disable-next-line @n8n/community-nodes/icon-prefer-themed-variants -- single-file icon works on both themes
-		icon: 'file:janisCommerce.svg',
+		icon: { light: 'file:janisCommerce.svg', dark: 'file:janisCommerce.dark.svg' },
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
