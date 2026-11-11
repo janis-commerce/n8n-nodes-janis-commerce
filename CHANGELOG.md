@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-10
+
+### Fixed
+
+- `JanisCommerce.node.json` codex now uses the npm package name as the `node`
+  prefix (`@janiscommerce/n8n-nodes-janis-commerce.janisCommerce` instead of
+  `n8n-nodes-base.janisCommerce`) and only supported community node
+  categories (`Sales`, `Marketing & Content`), as required by the n8n
+  verified-nodes review.
+
 ## [0.1.1] - 2026-09-01
 
 ### Security

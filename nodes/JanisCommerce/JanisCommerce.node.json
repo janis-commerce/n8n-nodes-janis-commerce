@@ -1,8 +1,8 @@
 {
-	"node": "n8n-nodes-base.janisCommerce",
+	"node": "@janiscommerce/n8n-nodes-janis-commerce.janisCommerce",
 	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
-	"categories": ["Sales", "Marketing", "IT Ops"],
+	"categories": ["Sales", "Marketing & Content"],
 	"resources": {
 		"credentialDocumentation": [
 			{

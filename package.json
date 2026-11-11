@@ -1,6 +1,6 @@
 {
 	"name": "@janiscommerce/n8n-nodes-janis-commerce",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "n8n community node for Janis Commerce: trigger for Janis webhooks and actions to consume the Janis Commerce API (orders, products, SKUs, prices, stock).",
 	"license": "MIT",
 	"homepage": "https://github.com/janis-commerce/n8n-nodes-janis-commerce#readme",
