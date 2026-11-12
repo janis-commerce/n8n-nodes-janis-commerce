@@ -35,7 +35,7 @@ Receive every webhook Janis Commerce sends (orders, products, SKUs, prices, stoc
 4. In Janis, create ONE webhook subscription per microservice pointing at that URL with all events enabled.
 
 **Events supported**
-Order (21): cancelationRejected, cancelationRequested, canceled, complete, delivered, deliveryRescheduled, inDelivery, invoiced, needsRepacking, needsRescheduling, notDelivered, partiallyPicked, picking, readyForDelivery, readyForInvoice, readyForPicking, refundRejected, refunded, requestRefund, requiresIntervention, rescheduled.
+Order (20): cancelationRejected, cancelationRequested, canceled, complete, delivered, deliveryRescheduled, inDelivery, invoiced, needsRepacking, needsRescheduling, notDelivered, partiallyPicked, picking, readyForDelivery, readyForInvoice, readyForPicking, refundRejected, refunded, requestRefund, rescheduled.
 Catalog: productSaved, skuSaved. Pricing: skuPriceUpdated. WMS: skuStockUpdated.
 
 **Extending**

@@ -3,6 +3,8 @@ import {
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
+	INodeProperties,
+	INodePropertyOptions,
 	IHttpRequestMethods,
 	IDataObject,
 	IHttpRequestOptions,
@@ -64,6 +66,58 @@ interface AdditionalFilter {
 	field: string;
 	value: string;
 }
+
+// "Options" collection of a Get Many list (Order / Product / Sku). Sort is
+// optional, so it lives here together with page size and response metadata.
+const buildListOptions = (
+	resource: string,
+	sortOptions: INodePropertyOptions[],
+): INodeProperties[] => [
+	{
+		displayName: 'Options',
+		name: 'options',
+		type: 'collection',
+		placeholder: 'Add Option',
+		default: {},
+		displayOptions: { show: { resource: [resource], operation: ['getAll'] } },
+		options: [
+			{
+				displayName: 'Include Response Metadata',
+				name: 'includeResponseHeaders',
+				type: 'boolean',
+				default: false,
+				description:
+					'Whether to add _meta.pagination { page, pageSize, totalItems, totalPages } to each item',
+			},
+			{
+				displayName: 'Page Size',
+				name: 'pageSize',
+				type: 'number',
+				default: DEFAULT_PAGE_SIZE,
+				typeOptions: { minValue: 1, maxValue: MAX_PAGE_SIZE },
+				description: `Items per request when paginating (max ${MAX_PAGE_SIZE})`,
+			},
+			{
+				displayName: 'Sort By',
+				name: 'sortBy',
+				type: 'options',
+				default: 'id',
+				options: sortOptions,
+			},
+			{
+				displayName: 'Sort Direction',
+				name: 'sortDirection',
+				type: 'options',
+				default: 'desc',
+				description: 'Only applies when Sort By is set',
+				options: [
+					{ name: 'Ascending', value: 'asc' },
+					{ name: 'Descending', value: 'desc' },
+				],
+			},
+		],
+	},
+];
 
 export class JanisCommerce implements INodeType {
 	description: INodeTypeDescription = {
@@ -242,12 +296,21 @@ export class JanisCommerce implements INodeType {
 				displayOptions: { show: { resource: ['skuPrice'], operation: ['get'] } },
 			},
 			{
-				displayName: 'Sales Channel ID',
-				name: 'salesChannel',
-				type: 'string',
-				default: '',
-				description: 'Optional sales channel filter',
+				displayName: 'Options',
+				name: 'options',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
 				displayOptions: { show: { resource: ['skuPrice'], operation: ['get'] } },
+				options: [
+					{
+						displayName: 'Sales Channel ID',
+						name: 'salesChannel',
+						type: 'string',
+						default: '',
+						description: 'Only return the price of this sales channel',
+					},
+				],
 			},
 
 			// -------------------- GET one — Sku Stock (by skuId) --------------------
@@ -261,20 +324,28 @@ export class JanisCommerce implements INodeType {
 				displayOptions: { show: { resource: ['skuStock'], operation: ['get'] } },
 			},
 			{
-				displayName: 'Sales Channel ID',
-				name: 'salesChannel',
-				type: 'string',
-				default: '',
-				description: 'Optional sales channel filter',
+				displayName: 'Options',
+				name: 'options',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
 				displayOptions: { show: { resource: ['skuStock'], operation: ['get'] } },
-			},
-			{
-				displayName: 'Include Warehouse Data',
-				name: 'warehouseData',
-				type: 'boolean',
-				default: false,
-				description: 'Whether to include extended warehouse information in the response',
-				displayOptions: { show: { resource: ['skuStock'], operation: ['get'] } },
+				options: [
+					{
+						displayName: 'Include Warehouse Data',
+						name: 'warehouseData',
+						type: 'boolean',
+						default: false,
+						description: 'Whether to include extended warehouse information in the response',
+					},
+					{
+						displayName: 'Sales Channel ID',
+						name: 'salesChannel',
+						type: 'string',
+						default: '',
+						description: 'Only return the stock of this sales channel',
+					},
+				],
 			},
 
 			// -------------------- GET MANY — Return All + Limit (shared) --------------------
@@ -444,20 +515,28 @@ export class JanisCommerce implements INodeType {
 				displayOptions: { show: { resource: ['skuPrice'], operation: ['getAll'] } },
 			},
 			{
-				displayName: 'Sales Channels IDs',
-				name: 'salesChannelsIds',
-				type: 'string',
-				default: '',
-				description: 'Optional comma-separated list of sales channel IDs to filter',
+				displayName: 'Options',
+				name: 'options',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
 				displayOptions: { show: { resource: ['skuPrice'], operation: ['getAll'] } },
-			},
-			{
-				displayName: 'Add Sales Channels',
-				name: 'addSalesChannels',
-				type: 'boolean',
-				default: true,
-				description: 'Whether to include the sales channels in the response',
-				displayOptions: { show: { resource: ['skuPrice'], operation: ['getAll'] } },
+				options: [
+					{
+						displayName: 'Add Sales Channels',
+						name: 'addSalesChannels',
+						type: 'boolean',
+						default: true,
+						description: 'Whether to include the sales channels in the response',
+					},
+					{
+						displayName: 'Sales Channels IDs',
+						name: 'salesChannelsIds',
+						type: 'string',
+						default: '',
+						description: 'Comma-separated list of sales channel IDs to filter',
+					},
+				],
 			},
 
 			// -------------------- Additional Filters (Order/Product/Sku) --------------------
@@ -485,101 +564,27 @@ export class JanisCommerce implements INodeType {
 				],
 			},
 
-			// -------------------- Sort — Order --------------------
-			{
-				displayName: 'Sort By',
-				name: 'sortBy',
-				type: 'options',
-				default: '',
-				displayOptions: { show: { resource: ['order'], operation: ['getAll'] } },
-				options: [
-					{ name: '(Default)', value: '' },
-					{ name: 'Commerce Date Created', value: 'commerceDateCreated' },
-					{ name: 'Commerce ID', value: 'commerceId' },
-					{ name: 'Delivery Estimate Date', value: 'shippings.deliveryEstimateDate' },
-					{ name: 'ID', value: 'id' },
-					{ name: 'Status', value: 'status' },
-				],
-			},
-
-			// -------------------- Sort — Product --------------------
-			{
-				displayName: 'Sort By',
-				name: 'sortBy',
-				type: 'options',
-				default: '',
-				displayOptions: { show: { resource: ['product'], operation: ['getAll'] } },
-				options: [
-					{ name: '(Default)', value: '' },
-					{ name: 'Date Created', value: 'dateCreated' },
-					{ name: 'Date Modified', value: 'dateModified' },
-					{ name: 'ID', value: 'id' },
-					{ name: 'Name', value: 'name' },
-					{ name: 'Reference ID', value: 'referenceId' },
-				],
-			},
-
-			// -------------------- Sort — Sku --------------------
-			{
-				displayName: 'Sort By',
-				name: 'sortBy',
-				type: 'options',
-				default: '',
-				displayOptions: { show: { resource: ['sku'], operation: ['getAll'] } },
-				options: [
-					{ name: '(Default)', value: '' },
-					{ name: 'Date Created', value: 'dateCreated' },
-					{ name: 'Date Modified', value: 'dateModified' },
-					{ name: 'ID', value: 'id' },
-					{ name: 'Reference ID', value: 'referenceId' },
-				],
-			},
-
-			// -------------------- Sort Direction (shared) --------------------
-			{
-				displayName: 'Sort Direction',
-				name: 'sortDirection',
-				type: 'options',
-				default: 'desc',
-				displayOptions: {
-					show: { resource: ['order', 'product', 'sku'], operation: ['getAll'] },
-					hide: { sortBy: [''] },
-				},
-				options: [
-					{ name: 'Ascending', value: 'asc' },
-					{ name: 'Descending', value: 'desc' },
-				],
-			},
-
-			// -------------------- Options (page size + metadata) --------------------
-			{
-				displayName: 'Options',
-				name: 'options',
-				type: 'collection',
-				placeholder: 'Add Option',
-				default: {},
-				displayOptions: {
-					show: { resource: ['order', 'product', 'sku'], operation: ['getAll'] },
-				},
-				options: [
-					{
-						displayName: 'Page Size',
-						name: 'pageSize',
-						type: 'number',
-						default: DEFAULT_PAGE_SIZE,
-						typeOptions: { minValue: 1, maxValue: MAX_PAGE_SIZE },
-						description: `Items per request when paginating (max ${MAX_PAGE_SIZE})`,
-					},
-					{
-						displayName: 'Include Response Metadata',
-						name: 'includeResponseHeaders',
-						type: 'boolean',
-						default: false,
-						description:
-							'Whether to add _meta.pagination { page, pageSize, totalItems, totalPages } to each item',
-					},
-				],
-			},
+			// -------------------- Options (sort + page size + metadata) --------------------
+			...buildListOptions('order', [
+				{ name: 'Commerce Date Created', value: 'commerceDateCreated' },
+				{ name: 'Commerce ID', value: 'commerceId' },
+				{ name: 'Delivery Estimate Date', value: 'shippings.deliveryEstimateDate' },
+				{ name: 'ID', value: 'id' },
+				{ name: 'Status', value: 'status' },
+			]),
+			...buildListOptions('product', [
+				{ name: 'Date Created', value: 'dateCreated' },
+				{ name: 'Date Modified', value: 'dateModified' },
+				{ name: 'ID', value: 'id' },
+				{ name: 'Name', value: 'name' },
+				{ name: 'Reference ID', value: 'referenceId' },
+			]),
+			...buildListOptions('sku', [
+				{ name: 'Date Created', value: 'dateCreated' },
+				{ name: 'Date Modified', value: 'dateModified' },
+				{ name: 'ID', value: 'id' },
+				{ name: 'Reference ID', value: 'referenceId' },
+			]),
 		],
 		};
 
@@ -646,9 +651,9 @@ export class JanisCommerce implements INodeType {
 
 				if (resource === 'skuPrice') {
 					const skuId = this.getNodeParameter('skuId', i) as string;
-					const salesChannel = this.getNodeParameter('salesChannel', i, '') as string;
+					const options = this.getNodeParameter('options', i, {}) as IDataObject;
 					const qs: IDataObject = {};
-					if (salesChannel) qs.salesChannel = salesChannel;
+					if (options.salesChannel) qs.salesChannel = options.salesChannel;
 					const response = await this.helpers.httpRequestWithAuthentication.call(
 						this,
 						'janisCommerceApi',
@@ -666,11 +671,10 @@ export class JanisCommerce implements INodeType {
 
 				if (resource === 'skuStock') {
 					const skuId = this.getNodeParameter('skuId', i) as string;
-					const salesChannel = this.getNodeParameter('salesChannel', i, '') as string;
-					const warehouseData = this.getNodeParameter('warehouseData', i, false) as boolean;
+					const options = this.getNodeParameter('options', i, {}) as IDataObject;
 					const qs: IDataObject = {};
-					if (salesChannel) qs.salesChannel = salesChannel;
-					if (warehouseData) qs.warehouseData = true;
+					if (options.salesChannel) qs.salesChannel = options.salesChannel;
+					if (options.warehouseData) qs.warehouseData = true;
 					const response = await this.helpers.httpRequestWithAuthentication.call(
 						this,
 						'janisCommerceApi',
@@ -695,12 +699,12 @@ export class JanisCommerce implements INodeType {
 						.split(',')
 						.map((s) => s.trim())
 						.filter(Boolean);
-					const salesChannelsIdsRaw = this.getNodeParameter('salesChannelsIds', i, '') as string;
-					const salesChannelsIds = salesChannelsIdsRaw
+					const options = this.getNodeParameter('options', i, {}) as IDataObject;
+					const salesChannelsIds = String(options.salesChannelsIds ?? '')
 						.split(',')
 						.map((s) => s.trim())
 						.filter(Boolean);
-					const addSalesChannels = this.getNodeParameter('addSalesChannels', i, true) as boolean;
+					const addSalesChannels = (options.addSalesChannels as boolean | undefined) ?? true;
 
 					const qs: IDataObject = {
 						skuIds: skuIds.join(','),
@@ -738,9 +742,9 @@ export class JanisCommerce implements INodeType {
 					((this.getNodeParameter('additionalFilters', i, {}) as IDataObject).filter as
 						| AdditionalFilter[]
 						| undefined) ?? [];
-				const sortBy = this.getNodeParameter('sortBy', i, '') as string;
-				const sortDirection = this.getNodeParameter('sortDirection', i, 'desc') as string;
 				const options = this.getNodeParameter('options', i, {}) as IDataObject;
+				const sortBy = (options.sortBy as string | undefined) ?? '';
+				const sortDirection = (options.sortDirection as string | undefined) ?? 'desc';
 				const pageSize = Math.min(
 					(options.pageSize as number) || DEFAULT_PAGE_SIZE,
 					MAX_PAGE_SIZE,

@@ -113,7 +113,18 @@ lists also support date-range sub-objects (`commerceDateCreatedRange`,
 `deliveryDateRange`). Free-form filters are available under **Additional
 Filters** for every list.
 
-**Sort** uses `sortBy=<field>` + `sortDirection=asc|desc`.
+**Sort** uses `sortBy=<field>` + `sortDirection=asc|desc`. Set it under
+**Options → Sort By / Sort Direction**.
+
+**Optional parameters** live in the **Options** collection of each
+operation:
+
+| Resource | Operation | Options |
+|---|---|---|
+| Order / Product / Sku | Get Many | Sort By, Sort Direction, Page Size, Include Response Metadata |
+| Sku Price | Get | Sales Channel ID |
+| Sku Price | Get Many | Sales Channels IDs, Add Sales Channels |
+| Sku Stock | Get | Sales Channel ID, Include Warehouse Data |
 
 **Pagination** uses `x-janis-page` / `x-janis-page-size` headers and
 reads the total from the `x-janis-total` response header. Enable
@@ -129,15 +140,33 @@ and pick the event in the node.
 Pick a specific resource to filter one event, or **Any (Router)** to
 accept every event and dispatch downstream with a **Switch** node.
 
-**Order events** (21 in total, all resolved to `GET /api/order/{id}` on
-`oms` in Full Resource mode):
+**Order events** (20 in total, all resolved to `GET /api/order/{id}` on
+`oms` in Full Resource mode). Each event links to its official Janis
+webhook reference; the JSON shown there is an example of the payload the
+trigger receives:
 
-`canceled`, `cancelationRequested`, `cancelationRejected`, `complete`,
-`delivered`, `deliveryRescheduled`, `inDelivery`, `invoiced`,
-`needsRepacking`, `needsRescheduling`, `notDelivered`, `partiallyPicked`,
-`picking`, `readyForDelivery`, `readyForInvoice`, `readyForPicking`,
-`refunded`, `refundRejected`, `requestRefund`, `requiresIntervention`,
-`rescheduled`.
+| Event | Payload docs |
+|---|---|
+| `cancelationRejected` | [orderCancelationRejectedWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderCancelationRejectedWebhook) |
+| `cancelationRequested` | [orderCancelationRequestedWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderCancelationRequestedWebhook) |
+| `canceled` | [orderCanceledWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderCanceledWebhook) |
+| `complete` | [orderCompleteWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderCompleteWebhook) |
+| `delivered` | [orderDeliveredWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderDeliveredWebhook) |
+| `deliveryRescheduled` | [orderDeliveryRescheduledWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderDeliveryRescheduledWebhook) |
+| `inDelivery` | [orderInDeliveryWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderInDeliveryWebhook) |
+| `invoiced` | [orderInvoicedWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderInvoicedWebhook) |
+| `needsRepacking` | [orderNeedsRepackingWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderNeedsRepackingWebhook) |
+| `needsRescheduling` | [orderNeedsReschedulingWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderNeedsReschedulingWebhook) |
+| `notDelivered` | [orderNotDeliveredWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderNotDeliveredWebhook) |
+| `partiallyPicked` | [orderPartiallyPickedWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderPartiallyPickedWebhook) |
+| `picking` | [orderPickingWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderPickingWebhook) |
+| `readyForDelivery` | [orderReadyForDeliveryWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderReadyForDeliveryWebhook) |
+| `readyForInvoice` | [orderReadyForInvoiceWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderReadyForInvoiceWebhook) |
+| `readyForPicking` | [orderReadyForPickingWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderReadyForPickingWebhook) |
+| `refundRejected` | [orderRefundRejectedWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderRefundRejectedWebhook) |
+| `refunded` | [orderRefundedWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderRefundedWebhook) |
+| `requestRefund` | [orderRequestRefundWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderRequestRefundWebhook) |
+| `rescheduled` | [orderRescheduledWebhook](https://docs.janis.in/v2/service/oms#tag/Order-Webhooks/operation/orderRescheduledWebhook) |
 
 **Other resources**:
 
@@ -155,18 +184,18 @@ accept every event and dispatch downstream with a **Switch** node.
   automatically per event), `GET` the entity from the origin service
   using the credential, and emit the full object.
 
-In **Any (Router)** mode with Full Resource, the fetched object also
-includes an `_event` field with `eventName`, `entity`, `service`, and
-`eventDate` — use it in a downstream `Switch` node to dispatch to
-subflows.
+### Router mode (Any)
 
-### Sample payloads
+With **Resource = Any (Router)** the trigger accepts every event Janis
+emits. Route downstream with a **Switch** node on the event name:
 
-Each event ships with a sample of both the raw webhook body and the
-fetched full resource. Hit **Execute step** on the trigger in the
-editor: it emits the sample of the selected event to the output panel
-(pretty-printed and drag-and-drop into downstream nodes with
-expressions). No real webhook needed to design the flow.
+| Output | Emitted item | Reference the event with |
+|---|---|---|
+| Webhook Payload | Raw body sent by Janis | `{{ $json.eventName }}` |
+| Full Resource | Full object fetched from the origin service (resolved from `eventName`), plus an `_event` field with `eventName`, `entity`, `service` and `eventDate` | `{{ $json._event.eventName }}` |
+
+In Full Resource mode, an event the trigger does not know how to fetch
+is emitted as the raw webhook payload so the router can still handle it.
 
 ### Authentication (optional)
 
