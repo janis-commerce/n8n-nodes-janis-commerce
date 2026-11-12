@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-12
+
+### Changed
+
+- **Janis Commerce** Optional settings of each operation (sales channel,
+  warehouse data, sorting) now live under **Options** instead of the main
+  form. Workflows that used them must set them again under **Options**.
+- **Janis Commerce Trigger** The node form no longer shows help notices: the
+  payload docs of each order event and how to route events in router mode
+  are now in the README.
+
+### Fixed
+
+- The README listed an order event the trigger does not support and
+  described a sample-payload feature that does not exist; it now matches the
+  trigger.
+
 ## [0.1.2] - 2026-11-10
 
 ### Fixed
